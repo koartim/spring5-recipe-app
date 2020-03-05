@@ -21,8 +21,8 @@
 <div class="container-fluid" style="margin-top: 20px">
     <div class="row">
         <div class="col-md-6 col-md-offset-3">
-            <!--This is the recipe command object, this will be used for the rest of the form th:action tells timleaf that we will be posting to /recipe-->
-            <form th:object="${recipe}" th:action="@{/recipe/}">
+            <!--This is the recipe command object, this will be used for the rest of the form th:action tells thymeleaf that we will be posting to /recipe-->
+            <form th:object="${recipe}" th:action="@{/recipe/}" method="post">
                 <input type="hidden" th:field="*{id}"/>
                 <div class="panel-group">
                     <div class="panel panel-primary">
@@ -67,10 +67,15 @@
                                 </div>
                                 <div class="col-md-3 form-group">
                                     <label>Difficulty:</label>
-                                    <select class="form-control">
-                                        <option>Easy</option>
-                                        <option>Medium</option>
-                                        <option>Hard</option>
+                                    <select class="form-control" th:field="*{difficulty}">
+                                        <option th:each="difficultyValue : ${T(guru.springframework.domain.Difficulty).values()}"
+                                            th:value="${difficultyValue.name()}"
+                                            th:text="${difficultyValue.name()}" value=""> val </option>
+                                    </select>
+                                        <select class="form-control" th:remove="all">
+                                        <option value="">Easy</option>
+                                        <option value="">Medium</option>
+                                        <option value="">Hard</option>
                                     </select>
                                 </div>
                             </div>
