@@ -10,6 +10,7 @@ import guru.springframework.repositories.UnitOfMeasureRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import javax.sound.midi.Receiver;
 import javax.transaction.Transactional;
 import java.util.Optional;
 
@@ -76,15 +77,49 @@ public class IngredientServiceImpl implements IngredientService {
                 .findById(ingredientCommand.getUom().getId())
                 .orElseThrow(() -> new RuntimeException("UOM NOT FOUND")));
             } else {
-                recipe.addIngredient(ingredientCommandToIngredient.convert(ingredientCommand));
+                // add new ingredient
+                Ingredient ingredient =  ingredientCommandToIngredient.convert(ingredientCommand);
+                ingredient.setRecipe(recipe);
+                recipe.addIngredient(ingredient);
+
             }
             Recipe savedRecipe = recipeRepository.save(recipe);
 
-            return ingredientToIngredientCommand.convert(savedRecipe.getIngredients().stream()
-            .filter(recipeIngredients -> recipeIngredients.getId().equals(ingredientCommand.getId()))
-            .findFirst()
-            .get());
+            Optional<Ingredient> savedIngredientOptional = savedRecipe.getIngredients().stream()
+                    .filter(recipeIngredients -> recipeIngredients.getDescription().equals(ingredientCommand.getDescription()))
+                    .filter(recipeIngredients -> recipeIngredients.getAmount().equals(ingredientCommand.getAmount()))
+                    .filter(recipeIngredients -> recipeIngredients.getUom().getId().equals(ingredientCommand.getUom().getId()))
+                    .findFirst();
+
+            return ingredientToIngredientCommand.convert(savedIngredientOptional.get());
         }
+    }
+
+    @Override
+    public void deleteById(Long recipeId, Long id) {
+       // the first thing we need to do is find the recipe with the ingredient we want to delete
+        Optional<Recipe> recipeOptional = recipeRepository.findById(recipeId);
+        // then we need to check if there is a value for the recipeId we entered
+        if(recipeOptional.isPresent()) {
+            log.debug("Found the recipe");
+            Recipe recipe = recipeOptional.get();
+         // now that we have the recipe we want, we need to look through recipe's ingredients set to find our ingredient
+            Optional<Ingredient> ingredientOptional = recipe.getIngredients().stream().filter(ingredient -> ingredient.getId().equals(id)).findFirst();
+         // this will return us an optional, so we need to check if the value is present like we did with the recipe
+         if (ingredientOptional.isPresent()) {
+             log.debug("Found the ingredient");
+             Ingredient ingredientToDelete = ingredientOptional.get();
+             // we set the recipe value to null, so hibernate knows to remove it
+             ingredientToDelete.setRecipe(null);
+             // we then remove it from the recipe's set of ingredients
+             recipe.getIngredients().remove(ingredientToDelete);
+             // finally we save the recipe with the deleted ingredient removed
+             recipeRepository.save(recipe);
+          } else {
+             log.debug("Recipe Id not found");
+         }
+        }
+
     }
 
 }
